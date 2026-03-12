@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.api.routes import properties, reviews
 
 app = FastAPI(
     title="TravelSense AI",
@@ -14,6 +15,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(properties.router)
+app.include_router(reviews.router)
 
 @app.get("/")
 async def root():
