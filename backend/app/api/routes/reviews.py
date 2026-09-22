@@ -1,40 +1,35 @@
-from fastapi import APIRouter
-from app.models.schemas import ReviewUpload
+from fastapi import APIRouter, HTTPException
+from app.models.schemas import ReviewUpload, TRAVELER_TYPES
 from app.services.processor import process_text_review
-from app.services.scorer import calculate_persona_scores
-from app.services.supabase_client import insert_review, update_analysis, update_persona_scores
+from app.services import supabase_client as db
+from app.services.property_scores import recompute_property_scores
 
 router = APIRouter()
 
+
 @router.post("/api/reviews/upload")
-async def upload_review(review: ReviewUpload):
+def upload_review(review: ReviewUpload):
+    if review.traveler_type and review.traveler_type not in TRAVELER_TYPES:
+        raise HTTPException(400, f"traveler_type must be one of {TRAVELER_TYPES}")
+    if not db.get_property_by_id(review.property_id):
+        raise HTTPException(404, "Property not found")
+
     result = process_text_review(review.review_text)
-    feature_scores = result["feature_scores"]
-    traveler_type = result["traveler_type"]
-    if review.traveler_type:
-        traveler_type = review.traveler_type
-    insert_review({
+    traveler_type = review.traveler_type or result["traveler_type"]
+
+    db.insert_review({
         "property_id": review.property_id,
         "review_text": review.review_text,
         "language": review.language,
         "source": review.source,
-        "traveler_type": traveler_type
-    })
-    update_analysis(review.property_id, {
-        "wifi_score": feature_scores["wifi"],
-        "noise_score": feature_scores["noise"],
-        "pool_score": feature_scores["pool"],
-        "accessibility_score": feature_scores["accessibility"],
-        "food_score": feature_scores["food"],
-        "cleanliness_score": feature_scores["cleanliness"],
-        "location_score": feature_scores["location"],
-        "value_score": feature_scores["value"]
-    })
-    persona_scores = calculate_persona_scores(feature_scores)
-    update_persona_scores(review.property_id, persona_scores)
-    return {
-        "message": "Review uploaded and processed successfully",
         "traveler_type": traveler_type,
-        "feature_scores": feature_scores,
-        "persona_scores": persona_scores
+        "feature_scores": result["feature_scores"],   # per-review scores, only mentioned features
+    })
+    updated = recompute_property_scores(review.property_id)
+    return {
+        "message": "Review processed",
+        "traveler_type": traveler_type,
+        "review_feature_scores": result["feature_scores"],
+        "property_analysis": updated["analysis"],
+        "property_persona_scores": updated["persona_scores"],
     }

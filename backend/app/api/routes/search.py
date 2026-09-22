@@ -4,21 +4,24 @@ from app.services.search import search_properties
 
 router = APIRouter()
 
-@router.post("/api/search")
-async def search(request: SearchRequest):
-    traveler_type = request.traveler_type or "solo"
+NEED_KEYWORDS = {
+    "accessibility": ["accessibility", "wheelchair"],
+    "business": ["business", "work"],
+    "family": ["family", "kids", "children"],
+}
+
+
+def infer_traveler_type(request: SearchRequest):
     if request.needs:
         needs = request.needs.lower()
-        if "accessibility" in needs or "wheelchair" in needs:
-            traveler_type = "accessibility"
-        elif "business" in needs or "work" in needs:
-            traveler_type = "business"
-        elif "family" in needs or "kids" in needs or "children" in needs:
-            traveler_type = "family"
+        for persona, words in NEED_KEYWORDS.items():
+            if any(w in needs for w in words):
+                return persona
+    return request.traveler_type or "solo"
+
+
+@router.post("/api/search")
+def search(request: SearchRequest):
+    traveler_type = infer_traveler_type(request)
     results = search_properties(request.query, traveler_type)
-    return {
-        "query": request.query,
-        "traveler_type": traveler_type,
-        "results": results,
-        "total": len(results)
-    }
+    return {"query": request.query, "traveler_type": traveler_type, "results": results, "total": len(results)}

@@ -1,0 +1,5 @@
+review_text,traveler_type,wifi_label,noise_label,pool_label,food_label,cleanliness_label,location_label,value_label,accessibility_label
+"Great pool for the kids and the breakfast buffet was excellent. Rooms were spotless.",family,,,pos,pos,pos,,,
+"Wifi kept dropping during my calls. Location near the office was convenient though.",business,neg,,,,,pos,,
+"Cheap and cheerful, right next to the metro. Very noisy at night from the street.",solo,,neg,,,,pos,pos,
+"No ramp at the entrance and the lift was out of order. Staff were kind but I could not reach my room.",accessibility,,,,,,,,neg

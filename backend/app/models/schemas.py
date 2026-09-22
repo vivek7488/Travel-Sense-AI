@@ -1,46 +1,31 @@
-from pydantic import BaseModel
-from typing import Optional, List
+from pydantic import BaseModel, Field
+from typing import Optional, Dict, List
+
+TRAVELER_TYPES = ("family", "business", "solo", "accessibility")
+FEATURES = ("wifi", "noise", "pool", "food", "cleanliness", "location", "value", "accessibility")
+
 
 class ReviewUpload(BaseModel):
     property_id: str
-    review_text: str
+    review_text: str = Field(min_length=10)
     traveler_type: Optional[str] = None
     language: Optional[str] = "en"
     source: Optional[str] = "user"
 
-class FeatureScores(BaseModel):
-    wifi_score: float
-    noise_score: float
-    pool_score: float
-    accessibility_score: float
-    food_score: float
-    cleanliness_score: float
-    location_score: float
-    value_score: float
-
-class PersonaScores(BaseModel):
-    family_score: float
-    business_score: float
-    accessibility_score: float
-    solo_score: float
-    family_summary: Optional[str] = None
-    business_summary: Optional[str] = None
-    accessibility_summary: Optional[str] = None
-    solo_summary: Optional[str] = None
-
-class PropertyResponse(BaseModel):
-    id: str
-    property_name: str
-    location: str
-    city: str
-    country: str
-    property_type: str
-    price_range: str
-    price_per_night_inr: Optional[int] = None
 
 class SearchRequest(BaseModel):
-    query: str
+    query: str = Field(min_length=2)
     traveler_type: Optional[str] = "solo"
     needs: Optional[str] = None
-    priority: Optional[str] = None
     budget: Optional[str] = None
+
+
+class PersonaScores(BaseModel):
+    family_score: Optional[float]
+    business_score: Optional[float]
+    solo_score: Optional[float]
+    accessibility_score: Optional[float]
+    family_summary: str
+    business_summary: str
+    solo_summary: str
+    accessibility_summary: str

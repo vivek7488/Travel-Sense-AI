@@ -1,41 +1,49 @@
 from fastapi import APIRouter, HTTPException
-from app.services.supabase_client import get_all_properties, get_property_by_id, get_reviews_by_property, get_analysis_by_property, get_persona_scores_by_property
+from app.services import supabase_client as db
+from app.services.property_scores import recompute_property_scores
 
 router = APIRouter()
 
+
 @router.get("/api/properties")
-async def list_properties(city: str = None, country: str = None, price_range: str = None):
-    props = get_all_properties()
-    if city:
-        props = [p for p in props if p.get("city","").lower() == city.lower()]
-    if country:
-        props = [p for p in props if p.get("country","").lower() == country.lower()]
-    if price_range:
-        props = [p for p in props if p.get("price_range","").lower() == price_range.lower()]
+def list_properties(city: str = None, country: str = None, price_range: str = None):
+    props = db.get_all_properties(city, country, price_range)   # filtered in the database, not in Python
     return {"properties": props, "total": len(props)}
 
+
 @router.get("/api/properties/{property_id}")
-async def get_property(property_id: str):
-    prop = get_property_by_id(property_id)
+def get_property(property_id: str):
+    prop = db.get_property_by_id(property_id)
     if not prop:
-        raise HTTPException(status_code=404, detail="Property not found")
+        raise HTTPException(404, "Property not found")
     return prop
 
+
 @router.get("/api/properties/{property_id}/scores")
-async def get_scores(property_id: str):
-    scores = get_persona_scores_by_property(property_id)
+def get_scores(property_id: str):
+    scores = db.get_persona_scores_by_property(property_id)
     if not scores:
-        raise HTTPException(status_code=404, detail="Scores not found")
+        raise HTTPException(404, "Scores not found")
     return scores
 
+
 @router.get("/api/properties/{property_id}/analysis")
-async def get_analysis(property_id: str):
-    analysis = get_analysis_by_property(property_id)
+def get_analysis(property_id: str):
+    analysis = db.get_analysis_by_property(property_id)
     if not analysis:
-        raise HTTPException(status_code=404, detail="Analysis not found")
+        raise HTTPException(404, "Analysis not found")
     return analysis
 
+
 @router.get("/api/properties/{property_id}/reviews")
-async def get_reviews(property_id: str):
-    reviews = get_reviews_by_property(property_id)
+def get_reviews(property_id: str):
+    reviews = db.get_reviews_by_property(property_id)
     return {"reviews": reviews, "total": len(reviews)}
+
+
+@router.post("/api/properties/{property_id}/recompute")
+def recompute(property_id: str):
+    """Rebuild this property's scores from all stored reviews (use after the migration)."""
+    if not db.get_property_by_id(property_id):
+        raise HTTPException(404, "Property not found")
+    return recompute_property_scores(property_id)
